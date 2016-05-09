@@ -4,7 +4,10 @@
 
 package user_agent
 
-import "strings"
+import (
+	"fmt"
+	"strings"
+)
 
 // Normalize the name of the operating system. By now, this just
 // affects to Windows NT.
@@ -210,6 +213,73 @@ func dalvik(p *UserAgent, comment []string) {
 	}
 }
 
+func ios(p *UserAgent, cfn string, darwin string) {
+	var os = ""
+	switch cfn {
+	// ~9
+	case "758.0.2":
+		os = "9.0"
+	case "758.1.6":
+		os = "9.2 Beta 3"
+	case "758.2.7":
+		os = "9.2 Beta 4"
+	case "758.2.8":
+		switch darwin {
+		case "15.0.0":
+			os = "9.2.1"
+		case "15.4.0":
+			os = "9.3 Beta 7"
+		}
+	case "758.3.15":
+		os = "9.3.1"
+	// ~8
+	case "711.5.6":
+		os = "8.4.1"
+	case "711.4.6":
+		os = "8.4"
+	case "711.3.18":
+		os = "8.3"
+	case "711.2.23":
+		os = "8.2"
+	case "711.1.16":
+		os = "8.1.3"
+	case "711.1.12":
+		os = "8.1.0"
+	case "711.0.6":
+		os = "8.0.2"
+	// ~7
+	case "672.1.15":
+		os = "7.1.2"
+	case "672.1.14":
+		os = "7.1.1"
+	case "672.1.13":
+		os = "7.1"
+	case "672.1.12":
+		os = "7.1-b5"
+	case "672.0.8":
+		os = "7.0.6"
+	case "672.0.2":
+		os = "7.0.2"
+	// ~6
+	case "609.1.4":
+		os = "6.1.4"
+	case "609":
+		os = "6.0.1"
+	case "602":
+		os = "6.0-b3"
+	// ~5
+	case "548.1.4":
+		os = "5.1"
+	case "548.0.4":
+		os = "5.0.1"
+	case "548.0.3":
+		os = "5"
+	}
+	p.platform = "iOS"
+	p.os = fmt.Sprintf("%s %s", p.platform, os)
+	p.mobile = true
+}
+
 // Given the comment of the first section of the UserAgent string,
 // get the platform.
 func getPlatform(comment []string) string {
@@ -231,38 +301,51 @@ func getPlatform(comment []string) string {
 }
 
 // Detect some properties of the OS from the given section.
-func (p *UserAgent) detectOS(s section) {
-	if s.name == "Mozilla" {
-		// Get the platform here. Be aware that IE11 provides a new format
-		// that is not backwards-compatible with previous versions of IE.
-		p.platform = getPlatform(s.comment)
-		if p.platform == "Windows" && len(s.comment) > 0 {
-			p.os = normalizeOS(s.comment[0])
-		}
+func (p *UserAgent) detectOS(s []section) {
+	for _, v := range s {
+		switch v.name {
+		case "Mozilla":
+			// Get the platform here. Be aware that IE11 provides a new format
+			// that is not backwards-compatible with previous versions of IE.
+			p.platform = getPlatform(v.comment)
+			if p.platform == "Windows" && len(v.comment) > 0 {
+				p.os = normalizeOS(v.comment[0])
+			}
 
-		// And finally get the OS depending on the engine.
-		switch p.browser.Engine {
-		case "":
-			p.undecided = true
-		case "Gecko":
-			gecko(p, s.comment)
-		case "AppleWebKit":
-			webkit(p, s.comment)
-		case "Trident":
-			trident(p, s.comment)
+			// And finally get the OS depending on the engine.
+			switch p.browser.Engine {
+			case "":
+				p.undecided = true
+			case "Gecko":
+				gecko(p, v.comment)
+			case "AppleWebKit":
+				webkit(p, v.comment)
+			case "Trident":
+				trident(p, v.comment)
+			}
+			return
+		case "Opera":
+			if len(v.comment) > 0 {
+				opera(p, v.comment)
+			}
+			return
+		case "Dalvik":
+			if len(v.comment) > 0 {
+				dalvik(p, v.comment)
+			}
+			return
+		case "CFNetwork":
+			for _, vv := range s {
+				if vv.name == "Darwin" {
+					ios(p, v.version, vv.version)
+					return
+				}
+			}
 		}
-	} else if s.name == "Opera" {
-		if len(s.comment) > 0 {
-			opera(p, s.comment)
-		}
-	} else if s.name == "Dalvik" {
-		if len(s.comment) > 0 {
-			dalvik(p, s.comment)
-		}
-	} else {
-		// Check whether this is a bot or just a weird browser.
-		p.undecided = true
 	}
+	// Check whether this is a bot or just a weird browser.
+	p.undecided = true
+	return
 }
 
 // Returns a string containing the platform..

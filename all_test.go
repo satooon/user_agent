@@ -461,6 +461,18 @@ var uastrings = []struct {
 		ua:       "Dalvik/1.6.0 (Linux; U; Android 4.0.4; W2430 Build/IMM76D)014; Profile/MIDP-2.1 Configuration/CLDC-1",
 		expected: "Mozilla:5.0 Platform:Linux OS:Android 4.0.4 Bot:false Mobile:true",
 	},
+
+	// Darwin
+	{
+		title:    "iOS 8.1.0",
+		ua:       "xxx/0 CFNetwork/711.1.12 Darwin/14.0.0",
+		expected: "Platform:iOS OS:iOS 8.1.0 Engine:CFNetwork-711.1.12 Bot:false Mobile:true",
+	},
+	{
+		title:    "iOS 9.2.1",
+		ua:       "xxx/0 CFNetwork/758.2.8 Darwin/15.0.0",
+		expected: "Platform:iOS OS:iOS 9.2.1 Engine:CFNetwork-758.2.8 Bot:false Mobile:true",
+	},
 }
 
 // Internal: beautify the UserAgent reference into a string so it can be
